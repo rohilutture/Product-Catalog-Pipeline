@@ -1,0 +1,9 @@
+
+version: 2
+
+sources:
+  - name: staging
+    database: product_catalog
+    schema: staging
+    tables:
+      - name: raw_products

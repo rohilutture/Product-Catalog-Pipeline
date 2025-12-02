@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: stg_products
+    columns:
+      - name: product_nk
+        tests:
+          - not_null
+      - name: updated_at
+        tests:
+          - not_null
+      - name: price
+        tests:
+          - dbt_utils.accepted_range:   # <-- add namespace
+              min_value: 0
+              inclusive: true

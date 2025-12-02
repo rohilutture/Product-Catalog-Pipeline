@@ -1,0 +1,12 @@
+
+version: 2
+
+models:
+  - name: dim_product_scd2_from_snapshot
+    tests:
+      - single_current_per_key:
+          key: product_nk
+      - no_overlaps:
+          key: product_nk
+          valid_from: valid_from
+          valid_to: valid_to

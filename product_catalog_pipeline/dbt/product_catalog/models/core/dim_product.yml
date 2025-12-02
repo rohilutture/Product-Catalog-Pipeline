@@ -1,0 +1,21 @@
+
+version: 2
+
+models:
+  - name: dim_product_scd2_from_snapshot
+    description: "Product dimension SCD Type 2 built from dbt snapshot history"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ['product_nk', 'valid_from']
+    columns:
+      - name: product_nk
+        tests: [not_null]
+      - name: is_current
+        tests: [not_null]
+  - name: dim_product_scd2_window
+    description: "Alternate SCD2 implementation using window functions (without snapshots)"
+    columns:
+      - name: product_nk
+        tests: [not_null]
+      - name: dim_product_sk
+        tests: [unique, not_null]

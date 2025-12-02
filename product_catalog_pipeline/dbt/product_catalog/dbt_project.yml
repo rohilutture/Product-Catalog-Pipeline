@@ -1,0 +1,31 @@
+
+name: 'product_catalog'
+version: '1.0.0'
+config-version: 2
+
+profile: 'product_catalog'
+
+model-paths: ['models']
+snapshot-paths: ['snapshots']
+test-paths: ['tests']
+macro-paths: ['macros']
+analysis-paths: ['analysis']
+target-path: 'target'
+clean-targets: ['target', 'dbt_packages']
+
+models:
+  product_catalog:
+    staging:
+      +schema: staging
+      +materialized: view
+      +tags: ['staging']
+    core:
+      +schema: core
+      +materialized: table
+      +tags: ['core']
+
+snapshots:
+  product_catalog:
+    +target_schema: snapshots
+
+# If you prefer, add dbt_utils in packages.yml (we also provide our own surrogate_key macro).
