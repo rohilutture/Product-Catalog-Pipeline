@@ -1,9 +1,9 @@
 
 # E-commerce Product Catalog Management (Airflow + dbt + Snowflake)
 
-This project delivers a complete pipeline to ingest, transform, and track product data with SCD Type 2 history using **dbt**, **Airflow**, and **Snowflake**. It uses your uploaded Home Depot CSV: `home_depot_data_1_2021_12.csv`.
+This project delivers a complete pipeline to ingest, transform, and track product data with SCD Type 2 history using **dbt**, **Airflow**, and **Snowflake**. It uses Home Depot CSV: `home_depot_data_1_2021_12.csv`.
 
-## 1) Environment Setup (1 pt)
+## 1) Environment Setup
 
 - Python 3.8+ (recommended 3.10)
 - Airflow 2.8+ with:
@@ -16,13 +16,13 @@ This project delivers a complete pipeline to ingest, transform, and track produc
 ### Optional (one command local deploy)
 A simple Docker Compose is included to run Airflow. Mount this repo so that the DAG and dbt project appear in the container paths used by the DAG.
 
-## 2) Source dataset (1 pt)
+## 2) Source dataset
 
-We use your uploaded CSV. The Airflow DAG expects it at `/opt/airflow/dags/data/home_depot_data_1_2021_12.csv` **inside the container**. This repo already places it at `airflow/dags/data/home_depot_data_1_2021_12.csv`; just mount the `airflow/dags` folder into your Airflow containers.
+The Airflow DAG expects it at `/opt/airflow/dags/data/home_depot_data_1_2021_12.csv` **inside the container**. This repo already places it at `airflow/dags/data/home_depot_data_1_2021_12.csv`; just mount the `airflow/dags` folder into your Airflow containers.
 
 If you prefer S3, set Airflow Variable `product_data_source="s3"`, `s3_bucket`, `s3_key` and configure the S3 external stage.
 
-## 3) Snowflake setup (1 pt)
+## 3) Snowflake setup
 
 The DAG task `create_objects` runs `airflow/include/sql/create_objects.sql` which:
 
@@ -32,7 +32,7 @@ The DAG task `create_objects` runs `airflow/include/sql/create_objects.sql` whic
 - Internal stage `staging.int_stage`
 - Staging table `staging.raw_products`
 
-## 4) Airflow DAG (4 pts)
+## 4) Airflow DAG
 
 **DAG:** `airflow/dags/product_catalog_etl.py`
 
@@ -57,8 +57,7 @@ The DAG task `create_objects` runs `airflow/include/sql/create_objects.sql` whic
 
 **Error handling:** task retries, short-circuit for missing files, and zero-copy tasks set to `ALL_DONE` so you still get backups/snapshots even after partial failures.
 
-## 5) dbt models (6 pts total)
-
+## 5) dbt models 
 - Project structure: `dbt/product_catalog`
 - Staging model: `models/staging/stg_products.sql`
   - Cleans and types fields, creates `product_nk`, sets `updated_at` timestamps.
@@ -74,15 +73,15 @@ The DAG task `create_objects` runs `airflow/include/sql/create_objects.sql` whic
 
 We provide our own `surrogate_key` macro to avoid a hard dependency on `dbt_utils`. If you want `dbt_utils`, run `dbt deps` (already wired in the DAG).
 
-## 6) dbt snapshots (1 pt)
+## 6) dbt snapshots
 
 Snapshot file: `snapshots/product_snapshot.sql` using `strategy: timestamp` on `updated_at` and `unique_key: product_nk`.
 
-## 7) dbt & Airflow integration (1 pt)
+## 7) dbt & Airflow integration
 
 The DAG runs `dbt deps`, `dbt snapshot`, `dbt run`, and `dbt test`. If you install the `astronomer-cosmos` provider, it uses `DbtCoreOperation`. Otherwise it falls back to CLI via `BashOperator`.
 
-## 8) Pipeline run & verification (3 pts)
+## 8) Pipeline run & verification 
 
 1. **Start Airflow** and enable DAG `product_catalog_etl`.
 2. After the run:
@@ -100,16 +99,16 @@ The DAG runs `dbt deps`, `dbt snapshot`, `dbt run`, and `dbt test`. If you insta
    - old row's `valid_to` populated
    - new row added with `is_current = true`
 
-## 9) Snowflake Zero-Copy Cloning (4 pts)
+## 9) Snowflake Zero-Copy Cloning 
 
-**9.1 Development Environment Cloning (1 pt)**  
+**9.1 Development Environment Cloning**  
 Task `clone_dev_database` runs:
 ```sql
 CREATE OR REPLACE DATABASE dev_product_catalog CLONE product_catalog;
 ```
 You can point your dbt `dev` target at this DB to test features safely.
 
-**9.2 Point-in-Time Analysis (1 pt)**  
+**9.2 Point-in-Time Analysis**  
 Task `create_eoy_snapshot` creates an EOY clone:
 ```sql
 CREATE OR REPLACE DATABASE product_catalog_eoy_<year>
@@ -117,10 +116,10 @@ CLONE product_catalog AT (TIMESTAMP => '<year>-12-31 23:59:59'::timestamp_ntz);
 ```
 Use it for year-over-year analysis.
 
-**9.3 Rapid Prototyping with Cloning (1 pt)**  
+**9.3 Rapid Prototyping with Cloning**  
 Task `run_prototype` clones schema, creates a prototype view, then cleans up.
 
-**9.4 Backup & Restore (1 pt)**  
+**9.4 Backup & Restore**  
 Task `manage_backups` creates a daily clone DB and prunes the 7th previous day.
 
 To restore, simply point dbt or your session to the backup DB or clone it back into `product_catalog`.
@@ -139,7 +138,7 @@ To restore, simply point dbt or your session to the backup DB or clone it back i
    - `product_data_source=local`
 5. Unpause the DAG `product_catalog_etl`.
 
-## 10) Experiments & 5 Key Takeaways (2 pts)
+## 10) Experiments & 5 Key Takeaways
 
 **Experiments:**  
 - Compared snapshot-based vs window-based SCD2 — snapshots are more declarative and auditable; window-based gives full SQL control.
@@ -155,7 +154,7 @@ To restore, simply point dbt or your session to the backup DB or clone it back i
 4. Make `product_nk` carefully (coalesce across identifiers) to avoid accidental record explosion.  
 5. Build in failure paths (short-circuit, retries, ALL_DONE on backups) so operational hygiene is automatic.
 
-## 11) How would I extend this exercise? (1 pt)
+## 11) How would I extend this exercise?
 
 - Add automated **data contracts** (schema + column-level constraints) enforced at `COPY` time with `VALIDATION_MODE=RETURN_ERRORS` and dbt tests.
 - Add **freshness checks** in Airflow (e.g., `S3KeySensor`) before the load.
